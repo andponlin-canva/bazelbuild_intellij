@@ -1,9 +1,11 @@
 package com.google.idea.blaze.base.ui;
 
 import com.google.idea.blaze.base.model.primitives.WorkspaceRoot;
+import com.google.idea.blaze.base.run.BlazeBeforeRunTaskProvider;
 import com.google.idea.blaze.base.settings.Blaze;
 import com.google.idea.blaze.base.settings.BlazeImportSettings;
 import com.intellij.ide.util.ModuleRendererFactory;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.ModuleType;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.roots.ProjectFileIndex;
@@ -16,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 public class BlazeModuleRendererFactory extends ModuleRendererFactory {
+    private static final Logger logger = Logger.getInstance(BlazeModuleRendererFactory.class);
+
     @Override
     protected boolean handles(Object element) {
         if (element instanceof PsiElement psiElement && psiElement.isValid()) {
@@ -42,6 +46,13 @@ public class BlazeModuleRendererFactory extends ModuleRendererFactory {
                 return null;
             }
             var sourceRoot = index.getSourceRootForFile(file);
+
+            if (sourceRoot == null) {
+                String msgTemplate = "was not able to get the source root from the project index " +
+                    "for the file [%s] from psi-element [%s]";
+                logger.warn(String.format(msgTemplate, file, psiElement));
+                return null;
+            }
             var relativeSourceRoot = WorkspaceRoot.fromProject(project).relativize(sourceRoot);
             if (relativeSourceRoot == null) {
                 return null;
